@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PCM 2026 — WorldTour CSV Generator</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- Brand strip -->
+    <div class="brand">Pro Cycling Manager · 2026</div>
+
+    <!-- Card -->
+    <div class="card">
+
+      <!-- Header -->
+      <div class="card__header">
+        <div class="card__icon">🚴</div>
+        <h1>WorldTour <span>2026</span></h1>
+        <p class="card__subtitle">
+          Scrape toutes les équipes WorldTour depuis ProCyclingStats
+          et génère un fichier CSV prêt pour PCM&nbsp;2024.
+        </p>
+      </div>
+
+      <!-- Info pills -->
+      <div class="pills">
+        <span class="pill"><span class="dot"></span>Source : ProCyclingStats</span>
+        <span class="pill"><span class="dot"></span>Saison 2026</span>
+        <span class="pill"><span class="dot"></span>Format PCM 2024</span>
+      </div>
+
+      <!-- CSV format preview -->
+      <div class="format-box">
+        <span class="label">Format de sortie · pcm_2026_teams.csv</span>
+        <div class="header-row">Team,Rider</div>
+        <div class="data-row">UAE Team Emirates,Tadej Pogacar</div>
+        <div class="data-row">UAE Team Emirates,Adam Yates</div>
+        <div class="data-row">Visma | Lease a Bike,Jonas Vingegaard</div>
+        <div class="data-row">...</div>
+      </div>
+
+      <!-- CTA Button -->
+      <button class="btn" id="btn-generate" onclick="generate()">
+        <span class="btn__icon">⬇</span>
+        <div class="btn__spinner"></div>
+        Télécharger le CSV
+      </button>
+
+      <!-- Status -->
+      <div class="status" id="status">
+        <div class="status__dot"></div>
+        <span id="status-text"></span>
+      </div>
+
+    </div>
+
+    <!-- Footer note -->
+    <p class="note">
+      Le scraping peut prendre 1–2 minutes (délai entre les requêtes).<br/>
+      Données issues de procyclingstats.com — usage personnel uniquement.
+    </p>
+
+  </div>
+
+  <script>
+    const btn    = document.getElementById('btn-generate');
+    const status = document.getElementById('status');
+    const text   = document.getElementById('status-text');
+
+    function setStatus(type, message) {
+      status.className = `status ${type} visible`;
+      text.textContent = message;
+    }
+
+    function clearStatus() {
+      status.className = 'status';
+    }
+
+    async function generate() {
+      btn.disabled = true;
+      btn.classList.add('loading');
+      setStatus('info', 'Scraping en cours… Cela peut prendre 1–2 minutes.');
+
+      try {
+        const response = await fetch('/generate');
+
+        if (!response.ok) {
+          let errorMsg = `Erreur serveur (${response.status})`;
+          try {
+            const data = await response.json();
+            if (data.error) errorMsg = data.error;
+          } catch (_) { /* ignore parse errors */ }
+          throw new Error(errorMsg);
+        }
+
+        // Trigger file download
+        const blob        = await response.blob();
+        const url          = URL.createObjectURL(blob);
+        const a            = document.createElement('a');
+        a.href             = url;
+        a.download         = 'pcm_2026_teams.csv';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+
+        setStatus('success', '✓ CSV généré et téléchargé avec succès !');
+
+      } catch (err) {
+        setStatus('error', `✗ ${err.message}`);
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('loading');
+      }
+    }
+  </script>
+
+</body>
+</html>
